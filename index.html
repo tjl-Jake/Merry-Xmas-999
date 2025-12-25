@@ -1,246 +1,242 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Interactive Tree</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    html, body, #root {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #050705;
-      font-family: system-ui, -apple-system;
-    }
-    button {
-      background: transparent;
-      border: 1px solid #f1c40f;
-      color: #f1c40f;
-      padding: 14px 36px;
-      border-radius: 40px;
-      letter-spacing: 3px;
-      cursor: pointer;
-    }
-  </style>
-</head>
+<script type="text/babel" data-type="module">
+import React, { useState, useMemo, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Float, Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 
-<body>
-<div id="root"></div>
+const PALETTE = {
+  green: '#C1E1C1',
+  pink: '#FADADD',
+  gold: '#FFFACD',
+  accent: '#FFB7B2',
+  bg: '#050a07'
+};
 
-<!-- React -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-<!-- Three -->
-<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-
-<!-- R3F -->
-<script src="https://unpkg.com/@react-three/fiber@8.15.12/dist/react-three-fiber.umd.js"></script>
-
-<!-- Drei -->
-<script src="https://unpkg.com/@react-three/drei@9.88.0/dist/drei.umd.js"></script>
-
-<!-- Postprocessing ✅ 正确 UMD -->
-<script src="https://unpkg.com/@react-three/postprocessing@2.16.2/dist/react-three-postprocessing.umd.js"></script>
-
-<script>
-const { useState, useMemo, useRef } = React
-const { Canvas, useFrame } = ReactThreeFiber
-const { PerspectiveCamera, OrbitControls, Stars } = Drei
-const { EffectComposer, Bloom, Noise, Vignette } = ReactThreePostprocessing
-
-const CONFIG = {
-  FOLIAGE: 8000,
-  ORNAMENTS: 40,
-  HEIGHT: 10,
-  RADIUS: 4
-}
-
-const State = {
-  TREE: 'TREE',
-  EXPLODE: 'EXPLODE',
-  SCATTER: 'SCATTER'
-}
-
-const treePos = () => {
-  const y = Math.random() * CONFIG.HEIGHT
-  const r = ((CONFIG.HEIGHT - y) / CONFIG.HEIGHT) * CONFIG.RADIUS
-  const a = Math.random() * Math.PI * 2
-  return new THREE.Vector3(
-    Math.cos(a) * r,
-    y - CONFIG.HEIGHT / 2,
-    Math.sin(a) * r
-  )
-}
-
-const scatterPos = () =>
-  new THREE.Vector3(
-    (Math.random() - 0.5) * 25,
-    (Math.random() - 0.5) * 25,
-    (Math.random() - 0.5) * 25
-  )
-
-function Foliage({ state }) {
-  const ref = useRef()
+/* ---------- 针叶粒子树 ---------- */
+const FoliageLayer = ({ isExploded }) => {
+  const count = 3500;
+  const ref = useRef();
 
   const data = useMemo(() => {
-    const t = new Float32Array(CONFIG.FOLIAGE * 3)
-    const s = new Float32Array(CONFIG.FOLIAGE * 3)
-    for (let i = 0; i < CONFIG.FOLIAGE; i++) {
-      const tp = treePos()
-      const sp = scatterPos()
-      t.set([tp.x, tp.y, tp.z], i * 3)
-      s.set([sp.x, sp.y, sp.z], i * 3)
+    const pos = new Float32Array(count * 3);
+    const base = new Float32Array(count * 3);
+    const vel = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const y = Math.pow(Math.random(), 1.1) * 10 - 5;
+      const r = (5 - y) * 0.42;
+      const a = Math.random() * Math.PI * 2;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      pos.set([x, y, z], i * 3);
+      base.set([x, y, z], i * 3);
+      const v = new THREE.Vector3(x, y, z).normalize().multiplyScalar(Math.random() * 15 + 5);
+      vel.set([v.x, v.y, v.z], i * 3);
     }
-    return { t, s }
-  }, [])
+    return { pos, base, vel };
+  }, []);
 
   useFrame((_, d) => {
-    const pos = ref.current.geometry.attributes.position.array
-    const target = state === State.SCatter ? data.s : data.t
-    for (let i = 0; i < pos.length; i++) {
-      pos[i] += (target[i] - pos[i]) * d * 2
-    }
-    ref.current.geometry.attributes.position.needsUpdate = true
-  })
-
-  return React.createElement(
-    'points',
-    { ref },
-    React.createElement(
-      'bufferGeometry',
-      null,
-      React.createElement('bufferAttribute', {
-        attach: 'attributes-position',
-        count: CONFIG.FOLIAGE,
-        array: data.t.slice(),
-        itemSize: 3
-      })
-    ),
-    React.createElement('pointsMaterial', {
-      size: 0.04,
-      color: '#A8BBA1',
-      transparent: true,
-      opacity: 0.5
-    })
-  )
-}
-
-function Ornaments({ state }) {
-  const ref = useRef()
-  const temp = new THREE.Object3D()
-
-  const items = useMemo(
-    () => Array.from({ length: CONFIG.ORNAMENTS }, () => ({
-      t: treePos(),
-      s: scatterPos(),
-      p: treePos(),
-      v: new THREE.Vector3()
-    })),
-    []
-  )
-
-  useFrame((_, d) => {
-    items.forEach((o, i) => {
-      if (state === State.EXPLODE) {
-        const f = o.p.clone().normalize().multiplyScalar(10 * d)
-        o.v.add(f)
-        o.p.add(o.v)
-        o.v.multiplyScalar(0.95)
-      } else if (state === State.SCatter) {
-        o.p.lerp(o.s, d)
+    const a = ref.current.geometry.attributes.position;
+    for (let i = 0; i < count; i++) {
+      let x = a.array[i*3], y = a.array[i*3+1], z = a.array[i*3+2];
+      if (isExploded) {
+        x += data.vel[i*3] * d * 0.5;
+        y += data.vel[i*3+1] * d * 0.5;
+        z += data.vel[i*3+2] * d * 0.5;
       } else {
-        o.p.lerp(o.t, d * 3)
-        o.v.set(0, 0, 0)
+        x = THREE.MathUtils.lerp(x, data.base[i*3], 0.1);
+        y = THREE.MathUtils.lerp(y, data.base[i*3+1], 0.1);
+        z = THREE.MathUtils.lerp(z, data.base[i*3+2], 0.1);
       }
-      temp.position.copy(o.p)
-      temp.updateMatrix()
-      ref.current.setMatrixAt(i, temp.matrix)
-    })
-    ref.current.instanceMatrix.needsUpdate = true
-  })
-
-  return React.createElement(
-    'instancedMesh',
-    { ref, args: [null, null, CONFIG.ORNAMENTS] },
-    React.createElement('sphereGeometry', { args: [0.18, 16, 16] }),
-    React.createElement('meshStandardMaterial', {
-      color: '#F1C40F',
-      emissive: '#F1C40F',
-      emissiveIntensity: 2
-    })
-  )
-}
-
-function App() {
-  const [state, setState] = useState(State.TREE)
-
-  const toggle = () => {
-    if (state === State.TREE) {
-      setState(State.EXPLODE)
-      setTimeout(() => setState(State.SCATTER), 1200)
-    } else {
-      setState(State.TREE)
+      a.setXYZ(i, x, y, z);
     }
-  }
+    a.needsUpdate = true;
+  });
 
-  return React.createElement(
-    React.Fragment,
-    null,
-    React.createElement(
-      'div',
-      { style: { position: 'absolute', inset: 0, pointerEvents: 'none' } },
-      React.createElement(
-        'button',
-        {
-          style: {
-            position: 'absolute',
-            bottom: 50,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            pointerEvents: 'auto'
-          },
-          onClick: toggle
-        },
-        state === State.TREE ? 'EXPLODE' : 'RESTORE'
-      )
-    ),
-    React.createElement(
-      Canvas,
-      null,
-      React.createElement(PerspectiveCamera, {
-        makeDefault: true,
-        position: [0, 4, 18],
-        fov: 35
-      }),
-      React.createElement(OrbitControls, { enableZoom: false }),
-      React.createElement('ambientLight', { intensity: 0.5 }),
-      React.createElement('pointLight', {
-        position: [10, 20, 10],
-        intensity: 80
-      }),
-      React.createElement(
-        'group',
-        { position: [0, -3, 0] },
-        React.createElement(Foliage, { state }),
-        React.createElement(Ornaments, { state })
-      ),
-      React.createElement(
-        EffectComposer,
-        null,
-        React.createElement(Bloom, { intensity: 1.2 }),
-        React.createElement(Noise, { opacity: 0.04 }),
-        React.createElement(Vignette, { darkness: 0.8 })
-      ),
-      React.createElement(Stars, { radius: 100, depth: 50, count: 2000 })
-    )
-  )
-}
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" array={data.pos} count={count} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.05} color={PALETTE.green} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
+    </points>
+  );
+};
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  React.createElement(App)
-)
+/* ---------- 礼物盒 ---------- */
+const GiftBoxes = ({ count, isExploded }) => {
+  const group = useRef();
+  const dummy = new THREE.Object3D();
+
+  const data = useMemo(() => (
+    Array.from({ length: count }).map(() => {
+      const y = Math.pow(Math.random(), 0.9) * 10 - 5;
+      const r = (5 - y) * 0.4;
+      const a = Math.random() * Math.PI * 2;
+      const p = new THREE.Vector3(Math.cos(a)*r, y, Math.sin(a)*r);
+      return {
+        base: p,
+        cur: p.clone(),
+        vel: p.clone().normalize().multiplyScalar(Math.random() * 10 + 5),
+        scale: Math.random() * 0.3 + 0.6
+      };
+    })
+  ), [count]);
+
+  useFrame((_, d) => {
+    data.forEach((p, i) => {
+      if (isExploded) {
+        p.cur.addScaledVector(p.vel, d * 0.6);
+        p.vel.multiplyScalar(0.96);
+      } else {
+        p.cur.lerp(p.base, 0.1);
+      }
+      dummy.position.copy(p.cur);
+      dummy.scale.setScalar(p.scale);
+      dummy.updateMatrix();
+      group.current.children.forEach(m => m.setMatrixAt(i, dummy.matrix));
+    });
+    group.current.children.forEach(m => m.instanceMatrix.needsUpdate = true);
+  });
+
+  return (
+    <group ref={group}>
+      <instancedMesh args={[null, null, count]}>
+        <boxGeometry args={[0.35,0.35,0.35]} />
+        <meshStandardMaterial color={PALETTE.accent} roughness={0.6} metalness={0.1} />
+      </instancedMesh>
+      <instancedMesh args={[null, null, count]}>
+        <boxGeometry args={[0.08,0.38,0.38]} />
+        <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.2} />
+      </instancedMesh>
+      <instancedMesh args={[null, null, count]}>
+        <boxGeometry args={[0.38,0.08,0.38]} />
+        <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.2} />
+      </instancedMesh>
+    </group>
+  );
+};
+
+/* ---------- 金属彩球（大小不一） ---------- */
+const MetalBalls = ({ count, isExploded }) => {
+  const mesh = useRef();
+  const dummy = new THREE.Object3D();
+
+  const data = useMemo(() => (
+    Array.from({ length: count }).map(() => {
+      const y = Math.pow(Math.random(), 0.9) * 10 - 5;
+      const r = (5 - y) * 0.42;
+      const a = Math.random() * Math.PI * 2;
+      const p = new THREE.Vector3(Math.cos(a)*r, y, Math.sin(a)*r);
+      return {
+        base: p,
+        cur: p.clone(),
+        vel: p.clone().normalize().multiplyScalar(Math.random()*12+4),
+        size: Math.random()*0.8+0.4
+      };
+    })
+  ), [count]);
+
+  useFrame((_, d) => {
+    data.forEach((p, i) => {
+      if (isExploded) {
+        p.cur.addScaledVector(p.vel, d * 0.6);
+        p.vel.multiplyScalar(0.97);
+      } else {
+        p.cur.lerp(p.base, 0.1);
+      }
+      dummy.position.copy(p.cur);
+      dummy.scale.setScalar(p.size);
+      dummy.updateMatrix();
+      mesh.current.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={mesh} args={[null, null, count]}>
+      <sphereGeometry args={[0.12,16,16]} />
+      <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.15} />
+    </instancedMesh>
+  );
+};
+
+/* ---------- 线条兔子 ---------- */
+const LineRabbits = ({ count, isExploded }) => {
+  const group = useRef();
+  const geo = useMemo(() => new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(0.25,1)), []);
+
+  const data = useMemo(() => (
+    Array.from({ length: count }).map(() => {
+      const y = Math.pow(Math.random(),0.9)*10-5;
+      const r = (5-y)*0.42;
+      const a = Math.random()*Math.PI*2;
+      const p = new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);
+      return {
+        base:p,
+        cur:p.clone(),
+        vel:p.clone().normalize().multiplyScalar(Math.random()*12+6),
+        scale:Math.random()*0.6+1
+      };
+    })
+  ), [count]);
+
+  useFrame((_,d)=>{
+    group.current.children.forEach((l,i)=>{
+      const p=data[i];
+      if(isExploded){
+        p.cur.addScaledVector(p.vel,d*0.6);
+        p.vel.multiplyScalar(0.96);
+      }else{
+        p.cur.lerp(p.base,0.1);
+      }
+      l.position.copy(p.cur);
+      l.scale.setScalar(p.scale);
+    });
+  });
+
+  return (
+    <group ref={group}>
+      {data.map((_,i)=>(
+        <lineSegments key={i} geometry={geo}>
+          <lineBasicMaterial color={PALETTE.pink} transparent opacity={0.6} />
+        </lineSegments>
+      ))}
+    </group>
+  );
+};
+
+/* ---------- 主应用 ---------- */
+const App = () => {
+  const [exploded,setExploded]=useState(false);
+
+  return (
+    <Canvas onClick={()=>setExploded(!exploded)}>
+      <PerspectiveCamera makeDefault position={[0,2,14]} fov={45}/>
+      <OrbitControls enablePan={false} autoRotate={!exploded} autoRotateSpeed={0.5}/>
+      <color attach="background" args={[PALETTE.bg]}/>
+
+      <ambientLight intensity={0.4}/>
+      <pointLight position={[10,10,10]} intensity={2} color={PALETTE.pink}/>
+      <spotLight position={[0,10,0]} intensity={1} color={PALETTE.gold}/>
+
+      <Stars radius={100} depth={50} count={5000} factor={4} fade/>
+
+      <FoliageLayer isExploded={exploded}/>
+      <GiftBoxes count={28} isExploded={exploded}/>
+      <MetalBalls count={65} isExploded={exploded}/>
+      <LineRabbits count={22} isExploded={exploded}/>
+
+      <Float speed={3} rotationIntensity={1} floatIntensity={1}>
+        <mesh position={[0,5.5,0]}>
+          <octahedronGeometry args={[0.4,0]}/>
+          <meshBasicMaterial color={PALETTE.gold}/>
+        </mesh>
+      </Float>
+    </Canvas>
+  );
+};
+
+createRoot(document.getElementById('root')).render(<App/>);
 </script>
-</body>
-</html>
