@@ -5,18 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>High-Fidelity Xmas Tree</title>
     <style>
-        body { margin: 0; background: #050a07; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; background: #050a07; overflow: hidden; font-family: -apple-system, sans-serif; }
         #root { width: 100vw; height: 100vh; }
         .overlay {
             position: absolute; top: 12%; width: 100%; text-align: center;
             pointer-events: none; z-index: 10;
         }
-        .overlay h1 { 
-            color: #FFFACD; 
-            text-shadow: 0 0 20px rgba(255, 250, 205, 0.5); 
-            margin: 0; font-size: 28px; 
-            min-height: 1.2em;
-        }
+        .overlay h1 { color: #FFFACD; text-shadow: 0 0 15px rgba(255,250,205,0.6); margin: 0; font-size: 26px; min-height: 1.2em; }
         .overlay p { color: white; opacity: 0.5; letter-spacing: 5px; font-size: 12px; margin-top: 8px; }
         .hint {
             position: absolute; bottom: 30px; width: 100%; text-align: center;
@@ -24,98 +19,83 @@
         }
     </style>
 
-<script type="importmap">
-{
-    "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-        "three": "https://esm.sh/three@0.160.0",
-        "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.11?external=react,react-dom,three",
-        "@react-three/drei": "https://esm.sh/@react-three/drei@9.88.15?external=react,react-dom,three,@react-three/fiber",
-        "@react-three/postprocessing": "https://esm.sh/@react-three/postprocessing@2.15.11?external=react,react-dom,three,@react-three/fiber"
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom": "https://esm.sh/react-dom@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "three": "https://esm.sh/three@0.160.0",
+            "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.11?external=react,react-dom,three",
+            "@react-three/drei": "https://esm.sh/@react-three/drei@9.88.15?external=react,react-dom,three,@react-three/fiber",
+            "@react-three/postprocessing": "https://esm.sh/@react-three/postprocessing@2.15.11?external=react,react-dom,three,@react-three/fiber"
+        }
     }
-}
-</script>
-
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel" data-type="module" data-presets="react">
-    /** @jsx React.createElement */
-    /** @jsxFrag React.Fragment */
-    import React, { useState, useMemo, useRef, useEffect } from 'react';
-    import { createRoot } from 'react-dom/client';
-    import * as THREE from 'three';
-    import { Canvas, useFrame } from '@react-three/fiber';
-    import { Float, Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-    import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
-
-    // ... (The rest of your component code remains the same as the last version) ...
-</script>
+    </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
     <div class="overlay">
-        <h1 id="title"></h1>
+        <h1 id="greeting"></h1>
         <p>MERRY CHRISTMAS</p>
     </div>
     <div id="root"></div>
-    <div class="hint">点击屏幕触发粒子爆发 • 拖动旋转</div>
+    <div class="hint">点击爆发粒子 • 拖拽旋转视角</div>
 
     <script type="text/babel" data-type="module">
+        /** @jsx React.createElement */
+        /** @jsxFrag React.Fragment */
         import React, { useState, useMemo, useRef, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
         import * as THREE from 'three';
         import { Canvas, useFrame } from '@react-three/fiber';
         import { Float, Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-        import { EffectComposer, Bloom, Noise, Vignette } from '@react-three/postprocessing';
+        import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
-        const PALETTE = { green: '#2D5A27', pink: '#FADADD', gold: '#FFFACD', accent: '#FFB7B2', bg: '#020504' };
+        const PALETTE = { green: '#1A3317', pink: '#FADADD', gold: '#FFFACD', accent: '#FFB7B2', bg: '#050a07' };
 
-        // --- 打字机效果 ---
+        // --- Typing Effect ---
         const Typewriter = () => {
             useEffect(() => {
                 const text = "小羊同学，圣诞节快乐！";
-                const el = document.getElementById('title');
                 let i = 0;
-                const timer = setInterval(() => {
-                    el.innerHTML = text.slice(0, i);
+                const interval = setInterval(() => {
+                    document.getElementById('greeting').innerText = text.slice(0, i);
                     i++;
-                    if (i > text.length) clearInterval(timer);
+                    if (i > text.length) clearInterval(interval);
                 }, 150);
-                return () => clearInterval(timer);
+                return () => clearInterval(interval);
             }, []);
             return null;
         };
 
-        // --- 雪花组件 ---
-        const Snow = ({ count = 800 }) => {
-            const meshRef = useRef();
-            const [positions, velocities] = useMemo(() => {
+        // --- New Snowfall Component ---
+        const Snow = ({ count = 1000 }) => {
+            const mesh = useRef();
+            const [particles] = useMemo(() => {
                 const pos = new Float32Array(count * 3);
-                const vel = new Float32Array(count);
                 for (let i = 0; i < count; i++) {
-                    pos.set([(Math.random() - 0.5) * 25, Math.random() * 20 - 5, (Math.random() - 0.5) * 25], i * 3);
-                    vel[i] = Math.random() * 0.02 + 0.01;
+                    pos.set([(Math.random()-0.5)*20, Math.random()*20, (Math.random()-0.5)*20], i * 3);
                 }
-                return [pos, vel];
+                return [pos];
             }, [count]);
 
-            useFrame(() => {
-                const attr = meshRef.current.geometry.attributes.position;
+            useFrame((state, delta) => {
                 for (let i = 0; i < count; i++) {
-                    attr.array[i * 3 + 1] -= velocities[i];
-                    if (attr.array[i * 3 + 1] < -7) attr.array[i * 3 + 1] = 13;
+                    mesh.current.geometry.attributes.position.array[i * 3 + 1] -= 0.02;
+                    if (mesh.current.geometry.attributes.position.array[i * 3 + 1] < -5) {
+                        mesh.current.geometry.attributes.position.array[i * 3 + 1] = 15;
+                    }
                 }
-                attr.needsUpdate = true;
+                mesh.current.geometry.attributes.position.needsUpdate = true;
             });
 
             return (
-                <points ref={meshRef}>
+                <points ref={mesh}>
                     <bufferGeometry>
-                        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+                        <bufferAttribute attach="attributes-position" count={count} array={particles} itemSize={3} />
                     </bufferGeometry>
-                    <pointsMaterial size={0.04} color="#ffffff" transparent opacity={0.4} />
+                    <pointsMaterial size={0.05} color="#ffffff" transparent opacity={0.5} />
                 </points>
             );
         };
@@ -165,13 +145,20 @@
 
             return (
                 <instancedMesh ref={meshRef} args={[geometry, null, count]}>
-                    <meshStandardMaterial color={color} roughness={0.1} metalness={0.8} wireframe={wireframe} emissive={color} emissiveIntensity={wireframe ? 2 : 0.5} />
+                    <meshStandardMaterial 
+                        color={color} 
+                        roughness={0.1} 
+                        metalness={0.8} 
+                        wireframe={wireframe} 
+                        emissive={color} 
+                        emissiveIntensity={wireframe ? 2 : 0.4} 
+                    />
                 </instancedMesh>
             );
         };
 
         const FoliageLayer = ({ isExploded }) => {
-            const count = 4000;
+            const count = 3500;
             const meshRef = useRef();
             const pts = useMemo(() => {
                 const arr = new Float32Array(count * 3);
@@ -213,7 +200,7 @@
                     <bufferGeometry>
                         <bufferAttribute attach="attributes-position" count={count} array={pts.arr} itemSize={3} />
                     </bufferGeometry>
-                    <pointsMaterial size={0.06} color="#4ade80" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
+                    <pointsMaterial size={0.06} color="#2D5A27" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
                 </points>
             );
         };
@@ -222,40 +209,35 @@
             const [exploded, setExploded] = useState(false);
             const boxGeo = useMemo(() => new THREE.BoxGeometry(0.2, 0.2, 0.2), []);
             const sphereGeo = useMemo(() => new THREE.SphereGeometry(0.12, 16, 16), []);
-            const starGeo = useMemo(() => new THREE.IcosahedronGeometry(0.15, 0), []);
+            const starGeo = useMemo(() => new THREE.IcosahedronGeometry(0.18, 0), []);
 
             return (
-                <Canvas onClick={() => setExploded(!exploded)} dpr={[1, 2]}>
+                <Canvas onClick={() => setExploded(!exploded)}>
                     <Typewriter />
-                    <PerspectiveCamera makeDefault position={[0, 2, 16]} fov={45} />
-                    <OrbitControls enablePan={false} autoRotate={!exploded} autoRotateSpeed={0.5} maxDistance={25} minDistance={5} />
-                    
+                    <PerspectiveCamera makeDefault position={[0, 2, 14]} fov={45} />
+                    <OrbitControls enablePan={false} autoRotate={!exploded} autoRotateSpeed={0.5} />
                     <color attach="background" args={[PALETTE.bg]} />
-                    <fog attach="fog" args={[PALETTE.bg, 10, 30]} />
                     
-                    <ambientLight intensity={0.2} />
-                    <pointLight position={[5, 5, 5]} intensity={5} color={PALETTE.gold} />
-                    <spotLight position={[0, 10, 0]} intensity={2} angle={0.3} penumbra={1} color={PALETTE.pink} />
+                    <ambientLight intensity={0.4} />
+                    <pointLight position={[10, 10, 10]} intensity={2} color={PALETTE.pink} />
+                    
+                    <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                    <Snow count={800} />
 
-                    <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
-                    <Snow count={1000} />
-                    
                     <FoliageLayer isExploded={exploded} />
-
                     <OrnamentLayer count={40} geometry={boxGeo} color={PALETTE.accent} isExploded={exploded} scale={1.2} />
                     <OrnamentLayer count={60} geometry={sphereGeo} color={PALETTE.gold} isExploded={exploded} />
-                    <OrnamentLayer count={30} geometry={starGeo} color={PALETTE.pink} isExploded={exploded} wireframe={true} scale={1.8} />
+                    <OrnamentLayer count={25} geometry={starGeo} color={PALETTE.pink} isExploded={exploded} wireframe={true} scale={1.6} />
 
-                    <Float speed={4} rotationIntensity={1.5} floatIntensity={2}>
+                    <Float speed={3} rotationIntensity={1} floatIntensity={1}>
                         <mesh position={[0, 5.5, 0]}>
-                            <octahedronGeometry args={[0.5, 0]} />
+                            <octahedronGeometry args={[0.4, 0]} />
                             <meshBasicMaterial color={PALETTE.gold} />
-                            <pointLight intensity={10} distance={5} color={PALETTE.gold} />
                         </mesh>
                     </Float>
 
-                    <EffectComposer disableNormalPass>
-                        <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} radius={0.4} />
+                    <EffectComposer>
+                        <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.4} />
                         <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     </EffectComposer>
                 </Canvas>
