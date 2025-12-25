@@ -25,6 +25,7 @@
             "react": "https://esm.sh/react@18.2.0",
             "react-dom": "https://esm.sh/react-dom@18.2.0",
             "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
             "three": "https://esm.sh/three@0.160.0",
             "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.11?external=react,react-dom,three",
             "@react-three/drei": "https://esm.sh/@react-three/drei@9.88.15?external=react,react-dom,three,@react-three/fiber",
@@ -54,13 +55,13 @@
 
         const PALETTE = { green: '#1A3317', pink: '#FADADD', gold: '#FFFACD', accent: '#FFB7B2', bg: '#050a07' };
 
-        // --- Typing Effect ---
         const Typewriter = () => {
             useEffect(() => {
                 const text = "小羊同学，圣诞节快乐！";
                 let i = 0;
                 const interval = setInterval(() => {
-                    document.getElementById('greeting').innerText = text.slice(0, i);
+                    const el = document.getElementById('greeting');
+                    if(el) el.innerText = text.slice(0, i);
                     i++;
                     if (i > text.length) clearInterval(interval);
                 }, 150);
@@ -69,8 +70,7 @@
             return null;
         };
 
-        // --- New Snowfall Component ---
-        const Snow = ({ count = 1000 }) => {
+        const Snow = ({ count = 800 }) => {
             const mesh = useRef();
             const [particles] = useMemo(() => {
                 const pos = new Float32Array(count * 3);
@@ -80,12 +80,11 @@
                 return [pos];
             }, [count]);
 
-            useFrame((state, delta) => {
+            useFrame(() => {
+                const positions = mesh.current.geometry.attributes.position.array;
                 for (let i = 0; i < count; i++) {
-                    mesh.current.geometry.attributes.position.array[i * 3 + 1] -= 0.02;
-                    if (mesh.current.geometry.attributes.position.array[i * 3 + 1] < -5) {
-                        mesh.current.geometry.attributes.position.array[i * 3 + 1] = 15;
-                    }
+                    positions[i * 3 + 1] -= 0.02;
+                    if (positions[i * 3 + 1] < -5) positions[i * 3 + 1] = 15;
                 }
                 mesh.current.geometry.attributes.position.needsUpdate = true;
             });
@@ -114,7 +113,7 @@
                         basePos: pos.clone(),
                         baseRot: new THREE.Euler(Math.random()*Math.PI, Math.random()*Math.PI, 0),
                         currentPos: pos.clone(),
-                        currentRot: new THREE.Euler().copy(new THREE.Euler(Math.random()*Math.PI, Math.random()*Math.PI, 0)),
+                        currentRot: new THREE.Euler(Math.random()*Math.PI, Math.random()*Math.PI, 0),
                         velocity: pos.clone().normalize().multiplyScalar(Math.random() * 12 + 4),
                         angVel: new THREE.Vector3(Math.random()-0.5, Math.random()-0.5, 0).multiplyScalar(2)
                     });
