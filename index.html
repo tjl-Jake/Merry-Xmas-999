@@ -5,80 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Christmas for 小羊同学</title>
     <style>
-        body { margin: 0; background: #050a07; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; background: #050a07; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         #root { width: 100vw; height: 100vh; }
-        #loading {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #C1E1C1; letter-spacing: 4px; z-index: 10; font-size: 14px;
+        /* 顶部文字装饰 */
+        .overlay {
+            position: absolute; top: 15%; width: 100%; text-align: center;
+            pointer-events: none; z-index: 10;
         }
+        .overlay h1 { color: #FFFACD; text-shadow: 0 0 20px #FADADD; margin: 0; font-size: 28px; letter-spacing: 2px; }
+        .overlay p { color: white; opacity: 0.6; letter-spacing: 6px; font-size: 14px; margin-top: 10px; }
         .hint {
-            position: absolute; bottom: 30px; width: 100%; text-align: center;
-            color: #C1E1C1; opacity: 0.5; font-size: 12px; letter-spacing: 2px; pointer-events: none;
+            position: absolute; bottom: 40px; width: 100%; text-align: center;
+            color: #C1E1C1; opacity: 0.4; font-size: 12px; letter-spacing: 2px; pointer-events: none;
         }
     </style>
 
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "three": "https://esm.sh/three@0.160.0",
+            "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.11?external=react,react-dom,three",
+            "@react-three/drei": "https://esm.sh/@react-three/drei@9.88.15?external=react,react-dom,three,@react-three/fiber"
+        }
+    }
+    </script>
     
-    <script src="https://unpkg.com/@react-three/fiber@8.15.11/dist/react-three-fiber.umd.js"></script>
-    <script src="https://unpkg.com/three-stdlib@2.28.9/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-    <div id="loading">✨ 正在为你准备圣诞惊喜...</div>
+    <div class="overlay">
+        <h1>小羊同学，圣诞节快乐！</h1>
+        <p>MERRY CHRISTMAS</p>
+    </div>
+    
     <div id="root"></div>
-    <div class="hint">点击屏幕：炸裂 / 还原</div>
+    <div class="hint">点击屏幕：炸裂 / 重组</div>
 
-    <script type="text/babel" data-presets="react">
-        const { useState, useMemo, useRef, useEffect } = React;
-        const { Canvas, useFrame } = ReactThreeFiber;
+    <script type="text/babel" data-type="module">
+        import React, { useState, useMemo, useRef, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import * as THREE from 'three';
+        import { Canvas, useFrame } from '@react-three/fiber';
+        import { Float, Stars, PerspectiveCamera, OrbitControls } from '@react-three/drei';
 
-        // --- 样式配置 ---
         const COLORS = { green: '#C1E1C1', pink: '#FADADD', gold: '#FFFACD', bg: '#050a07' };
 
-        // --- 逻辑：生成树坐标 ---
-        const generateTree = (count) => {
-            const pts = [];
-            for (let i = 0; i < count; i++) {
-                const y = Math.pow(Math.random(), 0.9) * 10 - 5;
-                const r = (5 - y) * 0.4;
-                const angle = Math.random() * Math.PI * 2;
-                pts.push({
-                    pos: new THREE.Vector3(Math.cos(angle) * r, y, Math.sin(angle) * r),
-                    v: new THREE.Vector3(Math.random() - 0.5, Math.random(), Math.random() - 0.5).multiplyScalar(12)
-                });
-            }
-            return pts;
-        };
-
-        // --- 组件：粒子树体 ---
-        const TreePoints = ({ exploded }) => {
+        // 核心：粒子针叶系统
+        const ChristmasTree = ({ isExploded }) => {
+            const count = 4000;
             const meshRef = useRef();
-            const data = useMemo(() => generateTree(3000), []);
-            const temp = new THREE.Vector3();
+            
+            // 预计算树的形状和爆炸向量
+            const particles = useMemo(() => {
+                const temp = [];
+                for (let i = 0; i < count; i++) {
+                    // 树状分布算法
+                    const y = Math.pow(Math.random(), 1.2) * 10 - 5;
+                    const radius = (5 - y) * 0.45;
+                    const angle = Math.random() * Math.PI * 2;
+                    
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    
+                    temp.push({
+                        basePos: new THREE.Vector3(x, y, z),
+                        // 随机爆炸方向
+                        velocity: new THREE.Vector3(x, y, z).normalize().multiplyScalar(Math.random() * 15 + 5),
+                        currentPos: new THREE.Vector3(x, y, z)
+                    });
+                }
+                return temp;
+            }, []);
 
             useFrame((state, delta) => {
                 const positions = meshRef.current.geometry.attributes.position.array;
-                data.forEach((p, i) => {
-                    if (exploded) {
-                        // 炸裂：向外移动
-                        p.pos.addScaledVector(p.v, delta);
-                        p.v.multiplyScalar(0.97); // 阻尼
+                
+                particles.forEach((p, i) => {
+                    if (isExploded) {
+                        // 炸裂逻辑
+                        p.currentPos.addScaledVector(p.velocity, delta * 0.5);
+                        p.velocity.multiplyScalar(0.98); // 空气阻力
                     } else {
-                        // 还原：平滑回到目标位置
-                        const target = new THREE.Vector3(
-                            Math.cos(i * 0.5) * (5 - (p.pos.y + 5)) * 0.1, 
-                            p.pos.y, 
-                            Math.sin(i * 0.5) * (5 - (p.pos.y + 5)) * 0.1
-                        ); // 这里简化逻辑演示还原
-                        // 实际上我们直接让它回到初始位置
-                        p.pos.lerp(new THREE.Vector3().copy(p.pos).normalize().setY(p.pos.y), 0.1);
+                        // 回归逻辑 (Lerp 效果)
+                        p.currentPos.lerp(p.basePos, 0.1);
+                        // 重置速度以备下次点击
+                        p.velocity.copy(p.basePos).normalize().multiplyScalar(Math.random() * 15 + 5);
                     }
-                    positions[i * 3] = p.pos.x;
-                    positions[i * 3 + 1] = p.pos.y;
-                    positions[i * 3 + 2] = p.pos.z;
+                    
+                    positions[i * 3] = p.currentPos.x;
+                    positions[i * 3 + 1] = p.currentPos.y;
+                    positions[i * 3 + 2] = p.currentPos.z;
                 });
+                
                 meshRef.current.geometry.attributes.position.needsUpdate = true;
             });
 
@@ -87,49 +107,51 @@
                     <bufferGeometry>
                         <bufferAttribute 
                             attach="attributes-position" 
-                            count={3000} 
-                            array={new Float32Array(3000 * 3)} 
+                            count={count} 
+                            array={new Float32Array(count * 3)} 
                             itemSize={3} 
                         />
                     </bufferGeometry>
-                    <pointsMaterial size={0.06} color={COLORS.green} transparent opacity={0.8} />
+                    <pointsMaterial 
+                        size={0.05} 
+                        color={COLORS.green} 
+                        transparent 
+                        opacity={0.8} 
+                        blending={THREE.AdditiveBlending}
+                    />
                 </points>
             );
         };
 
-        // --- 主场景 ---
         const App = () => {
-            const [exploded, setExploded] = useState(false);
-
-            useEffect(() => {
-                document.getElementById('loading').style.display = 'none';
-            }, []);
+            const [isExploded, setIsExploded] = useState(false);
 
             return (
-                <Canvas camera={{ position: [0, 0, 15], fov: 45 }} onClick={() => setExploded(!exploded)}>
-                    <color attach="background" args={[COLORS.bg]} />
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} color={COLORS.pink} />
+                <Canvas onClick={() => setIsExploded(!isExploded)}>
+                    <PerspectiveCamera makeDefault position={[0, 0, 15]} />
+                    <OrbitControls enablePan={false} autoRotate={!isExploded} autoRotateSpeed={0.5} />
                     
-                    <TreePoints exploded={exploded} />
-
-                    {/* 文字部分：使用原生 HTML 覆盖或简单实现 */}
-                    <mesh position={[0, 6, 0]}>
-                        <sphereGeometry args={[0.1]} />
-                        <meshBasicMaterial color={COLORS.gold} />
-                    </mesh>
+                    <color attach="background" args={[COLORS.bg]} />
+                    <ambientLight intensity={0.4} />
+                    <pointLight position={[10, 10, 10]} intensity={1.5} color={COLORS.pink} />
+                    
+                    <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                    
+                    <ChristmasTree isExploded={isExploded} />
+                    
+                    {/* 装饰物：星星 */}
+                    <Float speed={4} rotationIntensity={1} floatIntensity={2}>
+                        <mesh position={[0, 5.5, 0]}>
+                            <octahedronGeometry args={[0.3, 0]} />
+                            <meshBasicMaterial color={COLORS.gold} />
+                        </mesh>
+                    </Float>
                 </Canvas>
             );
         };
 
-        // 渲染
-        const root = ReactDOM.createRoot(document.getElementById('root'));
+        const root = createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
-    
-    <div style="position: absolute; top: 15%; width: 100%; text-align: center; pointer-events: none;">
-        <h1 style="color: #FFFACD; text-shadow: 0 0 15px #FADADD; margin: 0; font-size: 24px;">小羊同学，圣诞节快乐！</h1>
-        <p style="color: white; opacity: 0.8; letter-spacing: 5px;">MERRY CHRISTMAS</p>
-    </div>
 </body>
 </html>
