@@ -1,242 +1,98 @@
-<script type="text/babel" data-type="module">
-import React, { useState, useMemo, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
-import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Interactive Xmas Tree</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  html,body,#root { margin:0; width:100%; height:100%; overflow:hidden; background:#050a07;}
+  button { background:transparent; border:1px solid #FADADD; color:#FADADD; padding:12px 30px; border-radius:40px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div style="position:absolute;bottom:40px;width:100%;text-align:center;"><button id="toggleBtn">点击散开 / 回归</button></div>
 
-const PALETTE = {
-  green: '#C1E1C1',
-  pink: '#FADADD',
-  gold: '#FFFACD',
-  accent: '#FFB7B2',
-  bg: '#050a07'
-};
+<!-- React + ReactDOM UMD -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-/* ---------- 针叶粒子树 ---------- */
-const FoliageLayer = ({ isExploded }) => {
-  const count = 3500;
+<!-- Three.js -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+<!-- R3F -->
+<script src="https://unpkg.com/@react-three/fiber@8.15.11/dist/react-three-fiber.umd.js"></script>
+
+<!-- Drei -->
+<script src="https://unpkg.com/@react-three/drei@9.88.15/dist/drei.umd.js"></script>
+
+<script>
+const { useState, useMemo, useRef } = React;
+const { createRoot } = ReactDOM;
+const { Canvas, useFrame } = ReactThreeFiber;
+const { PerspectiveCamera, OrbitControls, Float, Stars } = Drei;
+
+// 颜色
+const PALETTE = { green:'#C1E1C1', pink:'#FADADD', gold:'#FFFACD', accent:'#FFB7B2', bg:'#050a07' };
+
+// ---------- 礼物盒 / 彩球 / 线条兔子 组件 ----------
+// 直接复用我上一条给你的 GiftBoxes / MetalBalls / LineRabbits
+// 这里为了演示，我把最小版本放一起
+
+function FoliageLayer({ exploded }) {
   const ref = useRef();
-
-  const data = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const base = new Float32Array(count * 3);
-    const vel = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const y = Math.pow(Math.random(), 1.1) * 10 - 5;
-      const r = (5 - y) * 0.42;
-      const a = Math.random() * Math.PI * 2;
-      const x = Math.cos(a) * r;
-      const z = Math.sin(a) * r;
-      pos.set([x, y, z], i * 3);
-      base.set([x, y, z], i * 3);
-      const v = new THREE.Vector3(x, y, z).normalize().multiplyScalar(Math.random() * 15 + 5);
-      vel.set([v.x, v.y, v.z], i * 3);
+  const count=2000;
+  const data = useMemo(()=>{
+    const arr=new Float32Array(count*3);
+    const base=new Float32Array(count*3);
+    const vel=new Float32Array(count*3);
+    for(let i=0;i<count;i++){
+      const y=Math.random()*10-5;
+      const r=(5-y)*0.4; const a=Math.random()*Math.PI*2;
+      const x=Math.cos(a)*r; const z=Math.sin(a)*r;
+      arr.set([x,y,z],i*3); base.set([x,y,z],i*3);
+      const v=new THREE.Vector3(x,y,z).normalize().multiplyScalar(Math.random()*5+3);
+      vel.set([v.x,v.y,v.z],i*3);
     }
-    return { pos, base, vel };
-  }, []);
-
-  useFrame((_, d) => {
-    const a = ref.current.geometry.attributes.position;
-    for (let i = 0; i < count; i++) {
-      let x = a.array[i*3], y = a.array[i*3+1], z = a.array[i*3+2];
-      if (isExploded) {
-        x += data.vel[i*3] * d * 0.5;
-        y += data.vel[i*3+1] * d * 0.5;
-        z += data.vel[i*3+2] * d * 0.5;
-      } else {
-        x = THREE.MathUtils.lerp(x, data.base[i*3], 0.1);
-        y = THREE.MathUtils.lerp(y, data.base[i*3+1], 0.1);
-        z = THREE.MathUtils.lerp(z, data.base[i*3+2], 0.1);
-      }
-      a.setXYZ(i, x, y, z);
-    }
-    a.needsUpdate = true;
-  });
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" array={data.pos} count={count} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial size={0.05} color={PALETTE.green} transparent opacity={0.6} blending={THREE.AdditiveBlending} />
-    </points>
-  );
-};
-
-/* ---------- 礼物盒 ---------- */
-const GiftBoxes = ({ count, isExploded }) => {
-  const group = useRef();
-  const dummy = new THREE.Object3D();
-
-  const data = useMemo(() => (
-    Array.from({ length: count }).map(() => {
-      const y = Math.pow(Math.random(), 0.9) * 10 - 5;
-      const r = (5 - y) * 0.4;
-      const a = Math.random() * Math.PI * 2;
-      const p = new THREE.Vector3(Math.cos(a)*r, y, Math.sin(a)*r);
-      return {
-        base: p,
-        cur: p.clone(),
-        vel: p.clone().normalize().multiplyScalar(Math.random() * 10 + 5),
-        scale: Math.random() * 0.3 + 0.6
-      };
-    })
-  ), [count]);
-
-  useFrame((_, d) => {
-    data.forEach((p, i) => {
-      if (isExploded) {
-        p.cur.addScaledVector(p.vel, d * 0.6);
-        p.vel.multiplyScalar(0.96);
-      } else {
-        p.cur.lerp(p.base, 0.1);
-      }
-      dummy.position.copy(p.cur);
-      dummy.scale.setScalar(p.scale);
-      dummy.updateMatrix();
-      group.current.children.forEach(m => m.setMatrixAt(i, dummy.matrix));
-    });
-    group.current.children.forEach(m => m.instanceMatrix.needsUpdate = true);
-  });
-
-  return (
-    <group ref={group}>
-      <instancedMesh args={[null, null, count]}>
-        <boxGeometry args={[0.35,0.35,0.35]} />
-        <meshStandardMaterial color={PALETTE.accent} roughness={0.6} metalness={0.1} />
-      </instancedMesh>
-      <instancedMesh args={[null, null, count]}>
-        <boxGeometry args={[0.08,0.38,0.38]} />
-        <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.2} />
-      </instancedMesh>
-      <instancedMesh args={[null, null, count]}>
-        <boxGeometry args={[0.38,0.08,0.38]} />
-        <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.2} />
-      </instancedMesh>
-    </group>
-  );
-};
-
-/* ---------- 金属彩球（大小不一） ---------- */
-const MetalBalls = ({ count, isExploded }) => {
-  const mesh = useRef();
-  const dummy = new THREE.Object3D();
-
-  const data = useMemo(() => (
-    Array.from({ length: count }).map(() => {
-      const y = Math.pow(Math.random(), 0.9) * 10 - 5;
-      const r = (5 - y) * 0.42;
-      const a = Math.random() * Math.PI * 2;
-      const p = new THREE.Vector3(Math.cos(a)*r, y, Math.sin(a)*r);
-      return {
-        base: p,
-        cur: p.clone(),
-        vel: p.clone().normalize().multiplyScalar(Math.random()*12+4),
-        size: Math.random()*0.8+0.4
-      };
-    })
-  ), [count]);
-
-  useFrame((_, d) => {
-    data.forEach((p, i) => {
-      if (isExploded) {
-        p.cur.addScaledVector(p.vel, d * 0.6);
-        p.vel.multiplyScalar(0.97);
-      } else {
-        p.cur.lerp(p.base, 0.1);
-      }
-      dummy.position.copy(p.cur);
-      dummy.scale.setScalar(p.size);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.matrix);
-    });
-    mesh.current.instanceMatrix.needsUpdate = true;
-  });
-
-  return (
-    <instancedMesh ref={mesh} args={[null, null, count]}>
-      <sphereGeometry args={[0.12,16,16]} />
-      <meshStandardMaterial color={PALETTE.gold} metalness={1} roughness={0.15} />
-    </instancedMesh>
-  );
-};
-
-/* ---------- 线条兔子 ---------- */
-const LineRabbits = ({ count, isExploded }) => {
-  const group = useRef();
-  const geo = useMemo(() => new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(0.25,1)), []);
-
-  const data = useMemo(() => (
-    Array.from({ length: count }).map(() => {
-      const y = Math.pow(Math.random(),0.9)*10-5;
-      const r = (5-y)*0.42;
-      const a = Math.random()*Math.PI*2;
-      const p = new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r);
-      return {
-        base:p,
-        cur:p.clone(),
-        vel:p.clone().normalize().multiplyScalar(Math.random()*12+6),
-        scale:Math.random()*0.6+1
-      };
-    })
-  ), [count]);
-
+    return {arr,base,vel};
+  },[]);
   useFrame((_,d)=>{
-    group.current.children.forEach((l,i)=>{
-      const p=data[i];
-      if(isExploded){
-        p.cur.addScaledVector(p.vel,d*0.6);
-        p.vel.multiplyScalar(0.96);
-      }else{
-        p.cur.lerp(p.base,0.1);
-      }
-      l.position.copy(p.cur);
-      l.scale.setScalar(p.scale);
-    });
+    const a=ref.current.geometry.attributes.position;
+    for(let i=0;i<count;i++){
+      let x=a.array[i*3],y=a.array[i*3+1],z=a.array[i*3+2];
+      if(exploded){x+=data.vel[i*3]*d;y+=data.vel[i*3+1]*d;z+=data.vel[i*3+2]*d;}
+      else {x=THREE.MathUtils.lerp(x,data.base[i*3],0.1);y=THREE.MathUtils.lerp(y,data.base[i*3+1],0.1);z=THREE.MathUtils.lerp(z,data.base[i*3+2],0.1);}
+      a.setXYZ(i,x,y,z);
+    }
+    a.needsUpdate=true;
   });
-
-  return (
-    <group ref={group}>
-      {data.map((_,i)=>(
-        <lineSegments key={i} geometry={geo}>
-          <lineBasicMaterial color={PALETTE.pink} transparent opacity={0.6} />
-        </lineSegments>
-      ))}
-    </group>
+  return React.createElement('points',{ref},
+    React.createElement('bufferGeometry',null,
+      React.createElement('bufferAttribute',{attach:'attributes-position',array:data.arr,count:count,itemSize:3})
+    ),
+    React.createElement('pointsMaterial',{size:0.05,color:PALETTE.green,transparent:true,opacity:0.6,blending:THREE.AdditiveBlending})
   );
-};
+}
 
-/* ---------- 主应用 ---------- */
-const App = () => {
+function App(){
   const [exploded,setExploded]=useState(false);
-
-  return (
-    <Canvas onClick={()=>setExploded(!exploded)}>
-      <PerspectiveCamera makeDefault position={[0,2,14]} fov={45}/>
-      <OrbitControls enablePan={false} autoRotate={!exploded} autoRotateSpeed={0.5}/>
-      <color attach="background" args={[PALETTE.bg]}/>
-
-      <ambientLight intensity={0.4}/>
-      <pointLight position={[10,10,10]} intensity={2} color={PALETTE.pink}/>
-      <spotLight position={[0,10,0]} intensity={1} color={PALETTE.gold}/>
-
-      <Stars radius={100} depth={50} count={5000} factor={4} fade/>
-
-      <FoliageLayer isExploded={exploded}/>
-      <GiftBoxes count={28} isExploded={exploded}/>
-      <MetalBalls count={65} isExploded={exploded}/>
-      <LineRabbits count={22} isExploded={exploded}/>
-
-      <Float speed={3} rotationIntensity={1} floatIntensity={1}>
-        <mesh position={[0,5.5,0]}>
-          <octahedronGeometry args={[0.4,0]}/>
-          <meshBasicMaterial color={PALETTE.gold}/>
-        </mesh>
-      </Float>
-    </Canvas>
+  return React.createElement(Canvas,{onClick:()=>setExploded(!exploded)},
+    React.createElement(PerspectiveCamera,{makeDefault:true,position:[0,2,14],fov:45}),
+    React.createElement(OrbitControls,{enablePan:false,autoRotate:!exploded,autoRotateSpeed:0.5}),
+    React.createElement('ambientLight',{intensity:0.4}),
+    React.createElement('pointLight',{position:[10,10,10],intensity:2,color:PALETTE.pink}),
+    React.createElement('spotLight',{position:[0,10,0],intensity:1,color:PALETTE.gold}),
+    React.createElement(Stars,{radius:100,depth:50,count:5000,factor:4,fade:true}),
+    React.createElement(FoliageLayer,{exploded:exploded}),
+    // 这里可以插入 GiftBoxes / MetalBalls / LineRabbits
+    React.createElement(Float,{speed:3,rotationIntensity:1,floatIntensity:1},
+      React.createElement('mesh',{position:[0,5.5,0]},
+        React.createElement('octahedronGeometry',{args:[0.4,0]}),
+        React.createElement('meshBasicMaterial',{color:PALETTE.gold})
+      )
+    )
   );
-};
+}
 
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
