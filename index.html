@@ -134,13 +134,47 @@
     <script>
         let isPlaying = false;
 
-        function startExperience() {
-            const overlay = document.getElementById('start-overlay');
-            const player = document.getElementById('music-container');
+        <script>
+        let isPlaying = false;
+        
+        // 专门解决 iOS 和 微信 无法自动播放的问题
+        function autoPlayAudio() {
             const audio = document.getElementById('bgm-audio');
             const btn = document.getElementById('music-toggle');
             const statusText = document.getElementById('music-text');
+            
+            if (audio && audio.paused) {
+                audio.play().then(() => {
+                    console.log("iOS/微信 自动播放成功");
+                    isPlaying = true;
+                    if(btn) {
+                        btn.innerText = '🎵';
+                        btn.classList.add('spinning');
+                    }
+                    if(statusText) statusText.innerText = '正在播放';
+                }).catch(err => {
+                    console.log("自动播放暂时失败，等待交互", err);
+                });
+            }
+        }
 
+        // 监听微信特有的事件
+        document.addEventListener('WeixinJSBridgeReady', function() {
+            autoPlayAudio();
+        }, false);
+
+        // 监听任意触摸事件（为了骗过 iOS 的限制）
+        document.addEventListener('touchstart', function() {
+            if (!isPlaying) {
+                autoPlayAudio();
+            }
+        }, { once: true }); // 只执行一次
+
+        // 原来的启动函数
+        function startExperience() {
+            const overlay = document.getElementById('start-overlay');
+            const player = document.getElementById('music-container');
+            
             // 1. 移除遮罩
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 800);
@@ -148,28 +182,31 @@
             // 2. 显示播放器
             player.classList.add('show');
 
-            // 3. 【核心修改】强制重置音频流
-            audio.volume = 1.0; // 强制音量 100%
-            audio.load();       // 强制浏览器重新请求数据
-            
-            // 4. 尝试播放
-            const playPromise = audio.play();
-
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    // 播放成功
-                    isPlaying = true;
-                    btn.innerText = '🎵';
-                    btn.classList.add('spinning');
-                    statusText.innerText = '正在播放';
-                }).catch(error => {
-                    // 播放失败
-                    console.log("播放失败:", error);
-                    btn.innerText = '▶';
-                    statusText.innerText = '点击播放';
-                });
-            }
+            // 3. 再次尝试触发播放
+            autoPlayAudio();
         }
+
+        // 播放器按钮交互逻辑
+        document.getElementById('music-toggle').addEventListener('click', function(e) {
+            e.stopPropagation(); 
+            const audio = document.getElementById('bgm-audio');
+            const statusText = document.getElementById('music-text');
+            
+            if (audio.paused) {
+                audio.play();
+                this.innerText = '🎵';
+                this.classList.add('spinning');
+                statusText.innerText = '正在播放';
+                isPlaying = true;
+            } else {
+                audio.pause();
+                this.innerText = '⏸';
+                this.classList.remove('spinning');
+                statusText.innerText = '已暂停';
+                isPlaying = false;
+            }
+        });
+    </script>
 
         // 播放器按钮交互逻辑
         document.getElementById('music-toggle').addEventListener('click', function(e) {
