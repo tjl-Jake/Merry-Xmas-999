@@ -122,15 +122,21 @@
             const audio = document.getElementById('bgm-audio');
             const btn = document.getElementById('toggle-btn');
 
-            // 兼容手机的触摸事件
             function startPlay() {
+                // 1. 无论音乐是否成功，先强制移除遮罩层（优先保证视觉体验）
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 800);
+                player.classList.remove('player-hidden');
+
+                // 2. 尝试播放音乐
                 audio.play().then(() => {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => overlay.remove(), 800);
-                    player.classList.remove('player-hidden');
+                    console.log("音乐播放成功");
                 }).catch(err => {
-                    // 某些手机如果处于省电模式，可能第一次会失败，提示用户再点一次
-                    document.querySelector('.start-content p').innerText = "请再点击一次屏幕";
+                    console.log("音乐播放被拦截或失败，但已进入主界面", err);
+                    // 手机常见错误：用户需要更强的交互，或者文件没加载完
+                    // 可以在这里把播放按钮的状态改成“暂停”，提示用户手动点一下播放
+                    const btn = document.getElementById('toggle-btn');
+                    if(btn) btn.textContent = '▶'; 
                 });
             }
 
