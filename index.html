@@ -141,25 +141,34 @@
             const btn = document.getElementById('music-toggle');
             const statusText = document.getElementById('music-text');
 
-            // 1. 移除遮罩 (优先保证视觉不卡顿)
+            // 1. 移除遮罩
             overlay.style.opacity = '0';
             setTimeout(() => overlay.remove(), 800);
 
             // 2. 显示播放器
             player.classList.add('show');
 
-            // 3. 尝试播放音乐
-            audio.play().then(() => {
-                isPlaying = true;
-                btn.innerText = '🎵';
-                btn.classList.add('spinning');
-                statusText.innerText = '正在播放';
-            }).catch(err => {
-                console.log("自动播放被拦截，等待手动点击");
-                isPlaying = false;
-                btn.innerText = '▶'; // 显示播放按钮
-                statusText.innerText = '点击播放';
-            });
+            // 3. 【核心修改】强制重置音频流
+            audio.volume = 1.0; // 强制音量 100%
+            audio.load();       // 强制浏览器重新请求数据
+            
+            // 4. 尝试播放
+            const playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // 播放成功
+                    isPlaying = true;
+                    btn.innerText = '🎵';
+                    btn.classList.add('spinning');
+                    statusText.innerText = '正在播放';
+                }).catch(error => {
+                    // 播放失败
+                    console.log("播放失败:", error);
+                    btn.innerText = '▶';
+                    statusText.innerText = '点击播放';
+                });
+            }
         }
 
         // 播放器按钮交互逻辑
