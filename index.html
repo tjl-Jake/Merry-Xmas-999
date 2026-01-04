@@ -62,7 +62,7 @@
         </div>
         
         <audio id="bgm-audio" loop playsinline>
-            <source src="music.mp3" type="audio/mpeg">
+          <source src="song.mp3" type="audio/mpeg">
         </audio>
     </div>
 
@@ -123,16 +123,28 @@
             const btn = document.getElementById('toggle-btn');
 
             function startPlay() {
-    // 1. 先不管音乐好坏，直接移除遮罩层，让你朋友能看到画面
-    overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 800);
-    player.classList.remove('player-hidden');
+                const overlay = document.getElementById('start-overlay');
+                const player = document.getElementById('bgm-player');
+                const audio = document.getElementById('bgm-audio');
+                const btn = document.getElementById('toggle-btn');
 
-    // 2. 尝试播放音乐
-    audio.play().catch(err => {
-        console.log("音乐播放失败（可能是404或被拦截），但不影响画面显示");
-    });
-}
+                // 1. 先把门打开（先移除遮罩，保证视觉体验）
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.remove(); 
+                }, 800);
+                
+                player.classList.remove('player-hidden');
+
+                // 2. 然后再尝试播放音乐
+                audio.play().then(() => {
+                    console.log("音乐播放成功");
+                }).catch(err => {
+                    console.log("音乐播放失败或被拦截，但已进入主界面", err);
+                    // 播放失败时，把图标改成暂停状，或者提示点击
+                    if(btn) btn.innerText = '▶'; 
+                });
+            }
 
             // 同时监听点击和触摸，确保手机能反应
             overlay.addEventListener('click', startPlay);
