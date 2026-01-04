@@ -36,12 +36,154 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
+    <div id="start-overlay">
+    <div class="start-content">
+        <h1>🎵 点击屏幕进入</h1>
+    </div>
+</div>
+
+<div id="bgm-player" class="player-hidden">
+    <div class="player-content">
+        <div class="visualizer">
+            <span></span><span></span><span></span><span></span>
+        </div>
+        
+        <div class="track-info">
+            <span id="music-status">背景音乐播放中</span>
+        </div>
+
+        <button id="toggle-btn" class="icon-btn">
+            ⏸
+        </button>
+    </div>
+    
+    <audio id="bgm-audio" loop>
+        <source src="music.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+</div>
+
+<style>
+    /* 入场遮罩样式 */
+    #start-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        cursor: pointer;
+        transition: opacity 0.8s ease;
+        backdrop-filter: blur(10px);
+    }
+    .start-content { text-align: center; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+    /* 播放器主体样式 */
+    #bgm-player {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        font-family: 'Arial', sans-serif;
+        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.27);
+    }
+
+    /* 初始隐藏状态 */
+    .player-hidden {
+        transform: translate(-50%, 150%) !important; /* 藏在屏幕下面 */
+    }
+
+    .player-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        /* 要求的粉蓝色渐变 */
+        background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        padding: 10px 20px;
+        border-radius: 50px;
+        box-shadow: 0 10px 25px rgba(161, 140, 209, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .track-info {
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+
+    .icon-btn {
+        background: rgba(255, 255, 255, 0.3);
+        border: none;
+        border-radius: 50%;
+        width: 35px; height: 35px;
+        cursor: pointer;
+        color: white;
+        display: flex; justify-content: center; align-items: center;
+        transition: background 0.2s;
+    }
+    .icon-btn:hover { background: rgba(255, 255, 255, 0.5); }
+
+    /* 声波动画小条 */
+    .visualizer { display: flex; gap: 3px; height: 15px; align-items: flex-end; }
+    .visualizer span {
+        width: 3px;
+        background: white;
+        animation: bounce 1s infinite ease-in-out;
+    }
+    .visualizer span:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+    .visualizer span:nth-child(3) { animation-delay: 0.4s; height: 80%; }
+    @keyframes bounce { 0%, 100% { height: 20%; } 50% { height: 100%; } }
+    
+    /* 暂停时停止动画 */
+    .paused .visualizer span { animation-play-state: paused; height: 20%; }
+</style>
+
+<script>
+    (function() {
+        const overlay = document.getElementById('start-overlay');
+        const player = document.getElementById('bgm-player');
+        const audio = document.getElementById('bgm-audio');
+        const btn = document.getElementById('toggle-btn');
+        const content = document.querySelector('.player-content');
+
+        // 1. 用户第一次点击屏幕：开始播放并移除遮罩
+        overlay.addEventListener('click', () => {
+            audio.play().then(() => {
+                // 播放成功
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 800); // 移除遮罩
+                player.classList.remove('player-hidden'); // 弹出播放器
+            }).catch(err => {
+                console.log("播放失败，可能需要更强的交互", err);
+            });
+        });
+
+        // 2. 播放/暂停按钮控制
+        btn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                btn.textContent = '⏸';
+                content.classList.remove('paused');
+            } else {
+                audio.pause();
+                btn.textContent = '▶';
+                content.classList.add('paused');
+            }
+        });
+    })();
+</script>
+    
     <div class="overlay">
         <h1 id="greeting"></h1>
         <p>MERRY CHRISTMAS</p>
     </div>
     <div id="root"></div>
-    <div class="hint">点击触发粒子爆发 • 拖拽旋转视角</div>
+    <div class="hint">人生不过三万天 我愿爱你三万遍</div>
 
     <script type="text/babel" data-type="module">
         /** @jsx React.createElement */
