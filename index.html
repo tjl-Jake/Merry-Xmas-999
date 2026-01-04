@@ -8,15 +8,14 @@
         body { margin: 0; background: #020504; overflow: hidden; font-family: -apple-system, sans-serif; user-select: none; -webkit-user-select: none; }
         #root { width: 100vw; height: 100vh; }
         
-        /* --- 1. 开场遮罩层 (手机端必须) --- */
+        /* --- 开场遮罩层 --- */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             z-index: 10000;
             display: flex; justify-content: center; align-items: center; flex-direction: column;
             color: white;
             transition: opacity 0.8s ease;
-            backdrop-filter: blur(5px);
             cursor: pointer;
         }
         .start-content { text-align: center; animation: pulse 2s infinite; }
@@ -26,45 +25,18 @@
 
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* --- 2. 3D场景文字叠加层 --- */
-        .overlay {
-            position: absolute; top: 12%; width: 100%; text-align: center;
-            pointer-events: none; z-index: 10;
-        }
-        .overlay h1 { color: #FFFACD; text-shadow: 0 0 20px rgba(255,250,205,0.8); margin: 0; font-size: 28px; min-height: 1.2em; }
-        .overlay p { color: white; opacity: 0.6; letter-spacing: 5px; font-size: 12px; margin-top: 10px; }
-        
-        .hint {
-            position: absolute; bottom: 30px; width: 100%; text-align: center;
-            color: #C1E1C1; opacity: 0.5; font-size: 11px; letter-spacing: 2px; pointer-events: none;
-            z-index: 5;
-        }
-
-        /* --- 3. 蓝粉色音乐播放器 (右下角) --- */
+        /* --- 蓝粉色音乐播放器 (右下角) --- */
         #music-container {
-            position: fixed;
-            bottom: 30px;
-            right: 20px;
-            z-index: 9999;
-            
-            /* 蓝粉渐变 + 毛玻璃 */
-            background: linear-gradient(135deg, rgba(161, 140, 209, 0.8) 0%, rgba(251, 194, 235, 0.8) 100%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            
-            padding: 8px 15px;
-            border-radius: 50px;
+            position: fixed; bottom: 30px; right: 20px; z-index: 9999;
+            background: linear-gradient(135deg, rgba(161, 140, 209, 0.85) 0%, rgba(251, 194, 235, 0.85) 100%);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            padding: 8px 15px; border-radius: 50px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.3);
-            
             display: flex; align-items: center; gap: 10px;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.27);
-            
-            /* 初始隐藏，点击后滑入 */
-            opacity: 0;
-            transform: translateY(50px);
+            transition: all 0.5s ease;
+            opacity: 0; transform: translateY(50px); /* 初始隐藏 */
         }
-
         #music-container.show { opacity: 1; transform: translateY(0); }
 
         .music-info { color: white; text-align: right; margin-right: 5px; }
@@ -72,18 +44,20 @@
         .music-status { font-size: 9px; opacity: 0.9; display: block; }
 
         .music-btn {
-            width: 36px; height: 36px;
-            border-radius: 50%; border: none;
-            background: rgba(255, 255, 255, 0.4);
-            color: white; cursor: pointer;
+            width: 36px; height: 36px; border-radius: 50%; border: none;
+            background: rgba(255, 255, 255, 0.4); color: white; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             -webkit-tap-highlight-color: transparent;
         }
-
         .spinning { animation: spin 4s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* --- 场景文字 --- */
+        .overlay { position: absolute; top: 12%; width: 100%; text-align: center; pointer-events: none; z-index: 10; }
+        .overlay h1 { color: #FFFACD; text-shadow: 0 0 20px rgba(255,250,205,0.8); margin: 0; font-size: 28px; }
+        .overlay p { color: white; opacity: 0.6; letter-spacing: 5px; font-size: 12px; margin-top: 10px; }
+        .hint { position: absolute; bottom: 30px; width: 100%; text-align: center; color: #C1E1C1; opacity: 0.5; font-size: 11px; letter-spacing: 2px; pointer-events: none; z-index: 5; }
     </style>
 
     <script type="importmap">
@@ -109,13 +83,13 @@
         <div class="start-content">
             <span class="tap-icon">👆</span>
             <div class="start-text">点击开启圣诞惊喜</div>
-            <div class="start-sub">建议佩戴耳机</div>
+            <div class="start-sub">建议佩戴耳机获得最佳体验</div>
         </div>
     </div>
 
     <div id="music-container">
         <div class="music-info">
-            <span class="music-title">Christmas Song</span>
+            <span class="music-title">Merry Christmas</span>
             <span id="music-text" class="music-status">点击播放</span>
         </div>
         <button id="music-toggle" class="music-btn">▶</button>
@@ -134,61 +108,47 @@
     <script>
         let isPlaying = false;
 
-        <script>
-        let isPlaying = false;
-        
-        // 专门解决 iOS 和 微信 无法自动播放的问题
-        function autoPlayAudio() {
+        function startExperience() {
+            const overlay = document.getElementById('start-overlay');
+            const player = document.getElementById('music-container');
             const audio = document.getElementById('bgm-audio');
             const btn = document.getElementById('music-toggle');
             const statusText = document.getElementById('music-text');
+
+            // --- 核心修复：立刻移除遮罩，防止卡死 ---
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                if(overlay) overlay.remove(); // 800ms后彻底移除
+            }, 800);
             
-            if (audio && audio.paused) {
+            // 显示播放器
+            player.classList.add('show');
+
+            // --- iOS/微信 音频激活逻辑 ---
+            if(audio) {
+                // 强制重置
+                audio.volume = 1.0; 
+                
+                // 尝试播放
                 audio.play().then(() => {
-                    console.log("iOS/微信 自动播放成功");
+                    console.log("播放成功");
                     isPlaying = true;
-                    if(btn) {
-                        btn.innerText = '🎵';
-                        btn.classList.add('spinning');
-                    }
-                    if(statusText) statusText.innerText = '正在播放';
+                    btn.innerText = '🎵';
+                    btn.classList.add('spinning');
+                    statusText.innerText = '正在播放';
                 }).catch(err => {
-                    console.log("自动播放暂时失败，等待交互", err);
+                    console.warn("自动播放受限:", err);
+                    // 播放失败也没关系，界面已经进去了
+                    isPlaying = false;
+                    btn.innerText = '▶';
+                    statusText.innerText = '点击播放';
                 });
             }
         }
 
-        // 监听微信特有的事件
-        document.addEventListener('WeixinJSBridgeReady', function() {
-            autoPlayAudio();
-        }, false);
-
-        // 监听任意触摸事件（为了骗过 iOS 的限制）
-        document.addEventListener('touchstart', function() {
-            if (!isPlaying) {
-                autoPlayAudio();
-            }
-        }, { once: true }); // 只执行一次
-
-        // 原来的启动函数
-        function startExperience() {
-            const overlay = document.getElementById('start-overlay');
-            const player = document.getElementById('music-container');
-            
-            // 1. 移除遮罩
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.remove(), 800);
-
-            // 2. 显示播放器
-            player.classList.add('show');
-
-            // 3. 再次尝试触发播放
-            autoPlayAudio();
-        }
-
-        // 播放器按钮交互逻辑
+        // 按钮点击事件
         document.getElementById('music-toggle').addEventListener('click', function(e) {
-            e.stopPropagation(); 
+            e.stopPropagation();
             const audio = document.getElementById('bgm-audio');
             const statusText = document.getElementById('music-text');
             
@@ -206,26 +166,14 @@
                 isPlaying = false;
             }
         });
-    </script>
 
-        // 播放器按钮交互逻辑
-        document.getElementById('music-toggle').addEventListener('click', function(e) {
-            e.stopPropagation(); // 防止触发背景点击
+        // 微信环境自动播放补丁
+        document.addEventListener('WeixinJSBridgeReady', function() {
             const audio = document.getElementById('bgm-audio');
-            const statusText = document.getElementById('music-text');
-            
-            if (audio.paused) {
-                audio.play();
-                this.innerText = '🎵';
-                this.classList.add('spinning');
-                statusText.innerText = '正在播放';
-            } else {
-                audio.pause();
-                this.innerText = '⏸';
-                this.classList.remove('spinning');
-                statusText.innerText = '已暂停';
+            if(audio && audio.paused) {
+                audio.play().catch(e => console.log("微信预加载失败"));
             }
-        });
+        }, false);
     </script>
 
     <script type="text/babel" data-type="module">
@@ -238,18 +186,11 @@
         import { Float, Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
         import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
-        // 调色板
         const PALETTE = {
-            green: '#1A3317', 
-            gold: '#FFD700', 
-            silver: '#E5E4E2',
-            xmasRed: '#D42426',
-            xmasGreen: '#165B33',
-            pink: '#FFB7B2',
-            bg: '#020504'
+            green: '#1A3317', gold: '#FFD700', silver: '#E5E4E2',
+            xmasRed: '#D42426', xmasGreen: '#165B33', pink: '#FFB7B2', bg: '#020504'
         };
 
-        // 打字机效果
         const Typewriter = () => {
             useEffect(() => {
                 const text = "小羊同学，圣诞节快乐！";
@@ -265,7 +206,6 @@
             return null;
         };
 
-        // 雪花系统
         const Snow = ({ count = 1000 }) => {
             const mesh = useRef();
             const [particles] = useMemo(() => {
@@ -275,7 +215,6 @@
                 }
                 return [pos];
             }, [count]);
-
             useFrame(() => {
                 const positions = mesh.current.geometry.attributes.position.array;
                 for (let i = 0; i < count; i++) {
@@ -284,85 +223,49 @@
                 }
                 mesh.current.geometry.attributes.position.needsUpdate = true;
             });
-
             return (
-                <points ref={mesh}>
-                    <bufferGeometry>
-                        <bufferAttribute attach="attributes-position" count={count} array={particles} itemSize={3} />
-                    </bufferGeometry>
-                    <pointsMaterial size={0.06} color="#ffffff" transparent opacity={0.6} />
-                </points>
+                <points ref={mesh}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={particles} itemSize={3} /></bufferGeometry>
+                <pointsMaterial size={0.06} color="#ffffff" transparent opacity={0.6} /></points>
             );
         };
 
-        // 礼物盒组件
         const GiftBox = ({ position, color, ribbonColor, scale = 1 }) => (
             <group position={position} scale={scale}>
-                <mesh castShadow>
-                    <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color={color} roughness={0.5} />
-                </mesh>
-                <mesh position={[0, 0, 0]}>
-                    <boxGeometry args={[1.05, 0.2, 1.05]} />
-                    <meshStandardMaterial color={ribbonColor} />
-                </mesh>
-                <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI/2]}>
-                    <boxGeometry args={[1.05, 0.2, 1.05]} />
-                    <meshStandardMaterial color={ribbonColor} />
-                </mesh>
+                <mesh castShadow><boxGeometry args={[1, 1, 1]} /><meshStandardMaterial color={color} roughness={0.5} /></mesh>
+                <mesh><boxGeometry args={[1.05, 0.2, 1.05]} /><meshStandardMaterial color={ribbonColor} /></mesh>
+                <mesh rotation={[0, 0, Math.PI/2]}><boxGeometry args={[1.05, 0.2, 1.05]} /><meshStandardMaterial color={ribbonColor} /></mesh>
             </group>
         );
 
-        // 线条兔子
         const WireRabbit = ({ isExploded }) => {
             const groupRef = useRef();
             const [data] = useMemo(() => {
                 const temp = [];
                 for(let i=0; i<6; i++) {
                     const angle = (i / 6) * Math.PI * 2;
-                    temp.push({
-                        pos: [Math.cos(angle)*3, -3.8, Math.sin(angle)*3],
-                        rot: [0, -angle, 0]
-                    });
+                    temp.push({ pos: [Math.cos(angle)*3, -3.8, Math.sin(angle)*3], rot: [0, -angle, 0] });
                 }
                 return [temp];
             }, []);
-
-            useFrame((state) => {
-                if(!isExploded) {
-                    groupRef.current.rotation.y += 0.005;
-                }
-            });
-
+            useFrame(() => { if(!isExploded) groupRef.current.rotation.y += 0.005; });
             return (
                 <group ref={groupRef} visible={!isExploded}>
                     {data.map((d, i) => (
                         <group key={i} position={d.pos} rotation={d.rot}>
-                            <mesh>
-                                <icosahedronGeometry args={[0.3, 1]} />
-                                <meshBasicMaterial color={PALETTE.pink} wireframe />
-                            </mesh>
-                            <mesh position={[0.1, 0.4, 0]} rotation={[0, 0, 0.2]}>
-                                <capsuleGeometry args={[0.05, 0.3, 2, 8]} />
-                                <meshBasicMaterial color={PALETTE.pink} wireframe />
-                            </mesh>
-                            <mesh position={[-0.1, 0.4, 0]} rotation={[0, 0, -0.2]}>
-                                <capsuleGeometry args={[0.05, 0.3, 2, 8]} />
-                                <meshBasicMaterial color={PALETTE.pink} wireframe />
-                            </mesh>
+                            <mesh><icosahedronGeometry args={[0.3, 1]} /><meshBasicMaterial color={PALETTE.pink} wireframe /></mesh>
+                            <mesh position={[0.1, 0.4, 0]} rotation={[0, 0, 0.2]}><capsuleGeometry args={[0.05, 0.3, 2, 8]} /><meshBasicMaterial color={PALETTE.pink} wireframe /></mesh>
+                            <mesh position={[-0.1, 0.4, 0]} rotation={[0, 0, -0.2]}><capsuleGeometry args={[0.05, 0.3, 2, 8]} /><meshBasicMaterial color={PALETTE.pink} wireframe /></mesh>
                         </group>
                     ))}
                 </group>
             );
         };
 
-        // 实例化金属球
         const MetallicOrbs = ({ isExploded }) => {
             const meshRef = useRef();
             const dummy = new THREE.Object3D();
             const count = 40;
             const colors = [PALETTE.gold, PALETTE.silver, PALETTE.xmasRed, '#00A86B'];
-
             const orbs = useMemo(() => {
                 const temp = [];
                 for (let i = 0; i < count; i++) {
@@ -370,48 +273,27 @@
                     const r = (5 - y) * 0.4;
                     const angle = Math.random() * Math.PI * 2;
                     const pos = new THREE.Vector3(Math.cos(angle) * r, y, Math.sin(angle) * r);
-                    temp.push({
-                        basePos: pos.clone(),
-                        currentPos: pos.clone(),
-                        velocity: pos.clone().normalize().multiplyScalar(Math.random() * 10 + 5),
-                        color: new THREE.Color(colors[i % colors.length])
-                    });
+                    temp.push({ basePos: pos.clone(), currentPos: pos.clone(), velocity: pos.clone().normalize().multiplyScalar(Math.random() * 10 + 5), color: new THREE.Color(colors[i % colors.length]) });
                 }
                 return temp;
             }, []);
-
             useFrame((state, delta) => {
                 orbs.forEach((o, i) => {
-                    if (isExploded) {
-                        o.currentPos.addScaledVector(o.velocity, delta * 0.5);
-                    } else {
-                        o.currentPos.lerp(o.basePos, 0.1);
-                    }
-                    dummy.position.copy(o.currentPos);
-                    dummy.scale.setScalar(1.2);
-                    dummy.updateMatrix();
-                    meshRef.current.setMatrixAt(i, dummy.matrix);
-                    meshRef.current.setColorAt(i, o.color);
+                    if (isExploded) o.currentPos.addScaledVector(o.velocity, delta * 0.5);
+                    else o.currentPos.lerp(o.basePos, 0.1);
+                    dummy.position.copy(o.currentPos); dummy.scale.setScalar(1.2); dummy.updateMatrix();
+                    meshRef.current.setMatrixAt(i, dummy.matrix); meshRef.current.setColorAt(i, o.color);
                 });
-                meshRef.current.instanceMatrix.needsUpdate = true;
-                meshRef.current.instanceColor.needsUpdate = true;
+                meshRef.current.instanceMatrix.needsUpdate = true; meshRef.current.instanceColor.needsUpdate = true;
             });
-
-            return (
-                <instancedMesh ref={meshRef} args={[new THREE.SphereGeometry(0.12, 24, 24), null, count]}>
-                    <meshStandardMaterial metalness={1} roughness={0.1} />
-                </instancedMesh>
-            );
+            return <instancedMesh ref={meshRef} args={[new THREE.SphereGeometry(0.12, 24, 24), null, count]}><meshStandardMaterial metalness={1} roughness={0.1} /></instancedMesh>;
         };
 
-        // 树叶粒子
         const FoliageLayer = ({ isExploded }) => {
             const count = 4000;
             const meshRef = useRef();
             const pts = useMemo(() => {
-                const arr = new Float32Array(count * 3);
-                const vels = new Float32Array(count * 3);
-                const base = new Float32Array(count * 3);
+                const arr = new Float32Array(count * 3), vels = new Float32Array(count * 3), base = new Float32Array(count * 3);
                 for (let i = 0; i < count; i++) {
                     const y = Math.pow(Math.random(), 1.1) * 10 - 5;
                     const r = (5 - y) * 0.42;
@@ -423,54 +305,35 @@
                 }
                 return { arr, vels, base };
             }, []);
-
             useFrame((state, delta) => {
                 const attr = meshRef.current.geometry.attributes.position;
                 for (let i = 0; i < count; i++) {
                     let x = attr.array[i*3], y = attr.array[i*3+1], z = attr.array[i*3+2];
-                    if (isExploded) {
-                        x += pts.vels[i*3] * delta * 0.5; y += pts.vels[i*3+1] * delta * 0.5; z += pts.vels[i*3+2] * delta * 0.5;
-                    } else {
-                        x = THREE.MathUtils.lerp(x, pts.base[i*3], 0.1);
-                        y = THREE.MathUtils.lerp(y, pts.base[i*3+1], 0.1);
-                        z = THREE.MathUtils.lerp(z, pts.base[i*3+2], 0.1);
-                    }
+                    if (isExploded) { x += pts.vels[i*3] * delta * 0.5; y += pts.vels[i*3+1] * delta * 0.5; z += pts.vels[i*3+2] * delta * 0.5; }
+                    else { x = THREE.MathUtils.lerp(x, pts.base[i*3], 0.1); y = THREE.MathUtils.lerp(y, pts.base[i*3+1], 0.1); z = THREE.MathUtils.lerp(z, pts.base[i*3+2], 0.1); }
                     attr.setXYZ(i, x, y, z);
                 }
                 attr.needsUpdate = true;
             });
-
-            return (
-                <points ref={meshRef}>
-                    <bufferGeometry>
-                        <bufferAttribute attach="attributes-position" count={count} array={pts.arr} itemSize={3} />
-                    </bufferGeometry>
-                    <pointsMaterial size={0.07} color="#165B33" transparent opacity={0.8} blending={THREE.AdditiveBlending} />
-                </points>
-            );
+            return <points ref={meshRef}><bufferGeometry><bufferAttribute attach="attributes-position" count={count} array={pts.arr} itemSize={3} /></bufferGeometry><pointsMaterial size={0.07} color="#165B33" transparent opacity={0.8} blending={THREE.AdditiveBlending} /></points>;
         };
 
         const App = () => {
             const [exploded, setExploded] = useState(false);
-
             return (
                 <Canvas onClick={() => setExploded(!exploded)}>
                     <Typewriter />
                     <PerspectiveCamera makeDefault position={[0, 2, 16]} fov={45} />
                     <OrbitControls enablePan={false} autoRotate={!exploded} autoRotateSpeed={0.5} minDistance={8} maxDistance={20} />
-                    
                     <color attach="background" args={[PALETTE.bg]} />
                     <ambientLight intensity={0.5} />
                     <pointLight position={[10, 10, 10]} intensity={10} color={PALETTE.gold} />
                     <spotLight position={[0, 10, 0]} intensity={5} color="#ffffff" angle={0.5} />
-
                     <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
                     <Snow count={1200} />
-
                     <FoliageLayer isExploded={exploded} />
                     <MetallicOrbs isExploded={exploded} />
                     <WireRabbit isExploded={exploded} />
-
                     {!exploded && (
                         <group position={[0, -4.5, 0]}>
                             <GiftBox position={[2, 0, 1]} color={PALETTE.xmasRed} ribbonColor={PALETTE.gold} scale={0.8} />
@@ -478,19 +341,10 @@
                             <GiftBox position={[0.5, 0, -2.5]} color={PALETTE.xmasGreen} ribbonColor={PALETTE.pink} scale={0.7} />
                         </group>
                     )}
-
                     <Float speed={3} rotationIntensity={2} floatIntensity={1}>
-                        <mesh position={[0, 5.4, 0]}>
-                            <octahedronGeometry args={[0.5, 0]} />
-                            <meshBasicMaterial color={PALETTE.gold} />
-                            <pointLight intensity={20} distance={10} color={PALETTE.gold} />
-                        </mesh>
+                        <mesh position={[0, 5.4, 0]}><octahedronGeometry args={[0.5, 0]} /><meshBasicMaterial color={PALETTE.gold} /><pointLight intensity={20} distance={10} color={PALETTE.gold} /></mesh>
                     </Float>
-
-                    <EffectComposer>
-                        <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} radius={0.4} />
-                        <Vignette offset={0.1} darkness={1.1} />
-                    </EffectComposer>
+                    <EffectComposer><Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} radius={0.4} /><Vignette offset={0.1} darkness={1.1} /></EffectComposer>
                 </Canvas>
             );
         };
